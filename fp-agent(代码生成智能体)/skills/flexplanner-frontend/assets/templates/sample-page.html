@@ -1,0 +1,527 @@
+<style type="text/css" scoped>
+  .buffer-rate-blue {
+    background-color: #48c4ff;
+    color: white;
+  }
+
+  .buffer-rate-red {
+    background-color: red;
+    color: white;
+  }
+
+  .xgrid-delete-btn {
+    color: red;
+    margin: 0 24px;
+  }
+
+  .grid-delete .vue-button {
+    color: red;
+  }
+
+  .select-text {
+    margin-top: 8px;
+    padding-left: 10px;
+  }
+
+  .add-plan-button {
+    padding-right: 10px;
+    margin-left: 5px;
+  }
+
+  .table-row-color {
+    background: #FFFF33;
+    color: black;
+  }
+
+  .table-row-color-before {
+    background: #F4A460;
+    color: black;
+  }
+</style>
+
+<template>
+  <div v-cloak class="page" v-loading="pageLoading" :vue-loading-text="messageutil.get('page.loading.text')">
+    <escort-form ref="form" id="form" :model="form">
+      <!-- ========== 快速选择区 ========== -->
+      <escort-row id="vueRow_wX8bm" ref="vueRow_wX8bm">
+        <escort-col align="left" :inline="true" :md="{span:12}" :sm="{span:12}" :xs="{span:12}">
+          <escort-text
+            text="快速选择:"
+            cls="select-text"
+            id="vueText_oIMkd"
+            ref="vueText_oIMkd"
+            :style_="{ fontSize: '15px', textAlign: 'right', fontWeight: 'bold' }">
+          </escort-text>
+          <escort-radio-button
+            :options="vueRadioButton_oIRGROpts"
+            :label-display="false"
+            id="vueRadioButton_oIRGR"
+            ref="vueRadioButton_oIRGR"
+            v-model="form.datafieldvueRadioButton_oIRGR"
+            prop="datafieldvueRadioButton_oIRGR"
+            @change="vueRadioButton_oIRGRChange">
+          </escort-radio-button>
+        </escort-col>
+        <escort-col align="right" :inline="true" :md="{span:12}" :sm="{span:12}" :xs="{span:12}">
+          <escort-button
+            style="text-decoration: underline;"
+            type="text"
+            cls="add-plan-button"
+            :hidden="true"
+            id="vueButton_5gz88W"
+            ref="vueButton_5gz88W"
+            @click="vueButton_5gz88WClick">
+            下发计划
+          </escort-button>
+          <escort-button
+            style="text-decoration: underline;"
+            type="text"
+            :hidden="apsEditFlag === false"
+            id="vueButton_SPGYG"
+            ref="vueButton_SPGYG"
+            @click="vueButton_SPGYGClick">
+            添加计划
+          </escort-button>
+        </escort-col>
+      </escort-row>
+
+      <!-- ========== 数据表格区 ========== -->
+      <escort-row id="vueRow_oMVvp" ref="vueRow_oMVvp">
+        <escort-col :md="{span:24}">
+          <escort-xgrid
+            id="vueXgrid_SrzcV"
+            ref="vueXgrid_SrzcV"
+            :data="gridData"
+            :cell-class-name="vueXgrid_SrzcVCellClassName"
+            :row-class-name="vueXgrid_SrzcVRowClassName">
+
+            <escort-xgrid-column align="center" type="checkbox" width="50px"></escort-xgrid-column>
+            <escort-xgrid-column type="index" align="center" width="50px" min-width="50px"></escort-xgrid-column>
+
+            <escort-xgrid-column
+              prop="lineGroup"
+              :resizable="true"
+              show-overflow="ellipsis"
+              width="100px"
+              text="产线组"
+              render-name="input">
+            </escort-xgrid-column>
+
+            <escort-xgrid-column
+              render-name="date"
+              edit-render-attrs-type="datetime"
+              prop="planStartDateTime"
+              edit-render-value-format="yyyy-MM-dd HH:mm:ss"
+              text="计划开始时间"
+              width="180px"
+              format="ymdt">
+            </escort-xgrid-column>
+
+            <escort-xgrid-column
+              render-name="date"
+              prop="planEndDateTime"
+              edit-render-value-format="yyyy-MM-dd HH:mm:ss"
+              text="计划结束时间"
+              width="180px"
+              format="ymdt">
+            </escort-xgrid-column>
+
+            <escort-xgrid-column
+              prop="planQty"
+              align="right"
+              width="100px"
+              text="计划数量"
+              render-name="input">
+            </escort-xgrid-column>
+
+            <escort-xgrid-column
+              prop="finishQty"
+              align="right"
+              width="100px"
+              text="完成数量"
+              render-name="input">
+            </escort-xgrid-column>
+
+            <escort-xgrid-column
+              prop="planedQty"
+              align="right"
+              width="100px"
+              text="下发数量"
+              render-name="input">
+            </escort-xgrid-column>
+
+            <escort-xgrid-column
+              :border="true"
+              prop="bufferRate"
+              align="right"
+              :tree-node="false"
+              width="100px"
+              text="缓冲率"
+              type="common"
+              :template="true"
+              render-name="template">
+              <template slot="default" slot-scope="scope">
+                <div>
+                  <div :class="getBufferRateCss(scope.row)">{{scope.row.bufferRate}}</div>
+                </div>
+              </template>
+            </escort-xgrid-column>
+
+            <escort-xgrid-column
+              prop="capacity"
+              align="right"
+              width="80px"
+              text="产能"
+              render-name="input">
+            </escort-xgrid-column>
+
+            <escort-xgrid-column
+              prop="itemKey"
+              :resizable="true"
+              show-overflow="ellipsis"
+              width="100px"
+              text="物料编号"
+              render-name="input">
+            </escort-xgrid-column>
+
+            <escort-xgrid-column
+              prop="specification"
+              width="100px"
+              text="规格"
+              render-name="input">
+            </escort-xgrid-column>
+
+            <escort-xgrid-column
+              prop="orderSort"
+              width="100px"
+              text="顺序"
+              render-name="input">
+            </escort-xgrid-column>
+
+            <escort-xgrid-column
+              prop="matchingSetNumber"
+              align="right"
+              :class-name="changeMatchingBackgroung"
+              width="100px"
+              text="齐套"
+              render-name="input">
+            </escort-xgrid-column>
+
+            <escort-xgrid-column
+              prop="status"
+              width="100px"
+              text="状态"
+              render-name="input">
+            </escort-xgrid-column>
+
+            <escort-xgrid-column
+              fixed="right"
+              align="center"
+              v-if="apsEditFlag"
+              width="100px"
+              render-name="button"
+              :buttons="vueXgrid_SrzcVVueXgridButtonColumn_SxyHGButtons">
+            </escort-xgrid-column>
+
+            <escort-xgrid-column
+              fixed="right"
+              align="center"
+              class-name="grid-delete"
+              v-if="apsEditFlag"
+              width="100px"
+              render-name="button"
+              :buttons="vueXgrid_SrzcVVueXgridButtonColumn_Su1yiButtons">
+            </escort-xgrid-column>
+          </escort-xgrid>
+        </escort-col>
+      </escort-row>
+
+      <!-- ========== 侧边栏弹窗 ========== -->
+      <escort-aside
+        :close-on-press-escape="true"
+        :close-on-click-modal="true"
+        id="vueAside_split"
+        ref="vueAside_split"
+        src="/lineGroupPlanDivide">
+      </escort-aside>
+
+      <escort-aside
+        :close-on-press-escape="true"
+        :close-on-click-modal="true"
+        id="vueAside_plan"
+        ref="vueAside_plan"
+        src="/lineGroupPlanNewPlan">
+      </escort-aside>
+
+    </escort-form>
+  </div>
+</template>
+
+<script type="text/javascript">
+  var pageMixins;
+  (function() {
+    var pageMixinMap = {};
+
+    // ========== 事件处理方法 ==========
+    pageMixinMap.event = {
+      methods: {
+        // 单选按钮变化事件
+        vueRadioButton_oIRGRChange: function(value) {
+          var self = this;
+          var data = self.gridData;
+          var list = [];
+          var nowTime = new Date();
+          nowTime.setHours(0);
+          nowTime.setMinutes(0);
+          nowTime.setSeconds(0);
+          var isChecked = self.$refs.vueXgrid_SrzcV.getSelectRecords();
+          if (isChecked.length > 0) {
+            self.$refs.vueXgrid_SrzcV.clearSelection();
+          }
+
+          if (value === 'seven') {
+            var ftime = new Date(nowTime);
+            ftime.setDate(ftime.getDate() + 7);
+            list = data.filter(function(item) {
+              var itemTime = VueUtil.parseDate(item.planStartDateTime, 'yyyy-MM-dd hh:mm:ss').getTime();
+              return nowTime.getTime() <= itemTime && itemTime <= ftime.getTime();
+            });
+            self.$refs.vueXgrid_SrzcV.setSelection(list, true);
+          } else if (value === 'fourteen') {
+            var ftime = new Date(nowTime);
+            ftime.setDate(ftime.getDate() + 14);
+            list = data.filter(function(item) {
+              var itemTime = VueUtil.parseDate(item.planStartDateTime, 'yyyy-MM-dd hh:mm:ss').getTime();
+              return nowTime.getTime() <= itemTime && itemTime <= ftime.getTime();
+            });
+            self.$refs.vueXgrid_SrzcV.setSelection(list, true);
+          } else if (value === 'all') {
+            list = data.filter(function(item) {
+              return item.status != '已下发';
+            });
+            self.$refs.vueXgrid_SrzcV.setSelection(list, true);
+          }
+          this.parent.toBeIssuedSelected = self.$refs.vueXgrid_SrzcV.getSelectRecords();
+        },
+
+        // 下发计划按钮
+        vueButton_5gz88WClick: function(event) {
+          var self = this;
+          self.$confirm({
+            title: "提示",
+            message: "确定要下发计划吗?",
+            type: "info"
+          });
+        },
+
+        // 添加计划按钮
+        vueButton_SPGYGClick: function(event) {
+          this.$refs.vueAside_plan.open({
+            prodLine: this.prodLine,
+            parent: this.parent
+          });
+        },
+
+        // 单元格样式回调
+        vueXgrid_SrzcVCellClassName: function(obj) {
+          var row = obj.row;
+          var nowTime = new Date();
+          nowTime.setHours(0);
+          nowTime.setMinutes(0);
+          nowTime.setSeconds(0);
+          if (VueUtil.parseDate(row.planStartDateTime, 'yyyy-MM-dd hh:mm:ss') < nowTime && row.status === '未下发') {
+            return 'table-row-color-before';
+          } else if (row.status === '未下发') {
+            return 'table-row-color';
+          }
+        },
+
+        // 行样式回调
+        vueXgrid_SrzcVRowClassName: function(obj) {
+          var row = obj.row;
+          var nowTime = new Date();
+          nowTime.setHours(0);
+          nowTime.setMinutes(0);
+          nowTime.setSeconds(0);
+          if (VueUtil.parseDate(row.planStartDateTime, 'yyyy-MM-dd hh:mm:ss') < nowTime && row.status === '未下发') {
+            return 'table-row-color-before';
+          } else if (row.status === '未下发') {
+            return 'table-row-color';
+          }
+        }
+      }
+    };
+
+    // ========== 手动混入 ==========
+    pageMixinMap.manualCommon = [{
+      props: {
+        prodLine: String,
+        apsEditFlag: {
+          type: Boolean,
+          default: true
+        }
+      },
+      inject: ['parent']
+    }];
+
+    // ========== 业务逻辑方法 ==========
+    pageMixinMap.manualSeperate = {
+      methods: {
+        // 获取缓冲率样式
+        getBufferRateCss: function(row) {
+          var bufferRate = row.bufferRate;
+          return bufferRate > 100 ? ["buffer-rate-blue"] : ["buffer-rate-red"];
+        },
+
+        // 拆分点击
+        splitClick: function(row) {
+          this.$refs.vueAside_split.open(row);
+        },
+
+        // 删除点击
+        deleteClick: function(row) {
+          var self = this;
+          self.$confirm({
+            title: "Warning",
+            message: "确定要删除这笔数据吗?",
+            type: "warning"
+          }).then(function(action) {
+            var item = self.parent.prodSchedule.data.filter(function(item) {
+              return item.id === row.id;
+            })[0];
+            self.parent.prodSchedule.data.splice(self.parent.prodSchedule.data.indexOf(item), 1);
+          });
+        },
+
+        // 齐套背景色
+        changeMatchingBackgroung: function(rowIndex, cellIndex, row) {
+          if (row.matchingSetNumber == '0' || row.matchingSetNumber === '未齐套') {
+            return 'table-info-row';
+          }
+        },
+
+        // 数据排序
+        sortData: function(gridData) {
+          var unissuedData = [];
+          var issueData = [];
+          for (var i = 0; i < gridData.length; i++) {
+            if (gridData[i].status === "未下发") {
+              unissuedData.push(gridData[i]);
+            } else {
+              issueData.push(gridData[i]);
+            }
+          }
+          unissuedData.sort(function(a, b) {
+            return new Date(a.planStartDateTime).getTime() - new Date(b.planStartDateTime).getTime();
+          });
+          issueData.sort(function(a, b) {
+            return new Date(a.planStartDateTime).getTime() - new Date(b.planStartDateTime).getTime();
+          });
+          Array.prototype.push.apply(unissuedData, issueData);
+          return unissuedData;
+        }
+      },
+      computed: {
+        // XGrid 数据计算属性
+        gridData: function() {
+          var self = this;
+          var data = self.parent.prodSchedule.data || [];
+          var assignData = self.vueDataSet_ASSIGNList ? self.vueDataSet_ASSIGNList.data : [];
+          var assignMap = {};
+          if (assignData) {
+            assignData.forEach(function(item) {
+              assignMap[item.key1] = item.codeData1;
+            });
+          }
+          var gridData = [];
+          for (var i = 0; i < data.length; i++) {
+            var item = data[i];
+            gridData.push({
+              lineGroup: item.resources,
+              planStartDateTime: item.planStartDatetime,
+              planEndDateTime: item.planEndDatetime,
+              planQty: item.planQty,
+              finishQty: item.finishQty,
+              planedQty: item.fullkitQty,
+              bufferRate: item.bufferRate,
+              capacity: 0,
+              itemKey: item.itemKey,
+              specification: 0,
+              orderSort: 0,
+              matchingSetNumber: 0,
+              status: item.assignFlag ? assignMap["1"] : assignMap["0"]
+            });
+          }
+          if (self.prodLine != "all") {
+            var tempData = gridData.filter(function(item) {
+              return item.resources === self.prodLine;
+            });
+            gridData = this.sortData(tempData);
+            return gridData;
+          } else {
+            gridData = this.sortData(gridData);
+            return gridData;
+          }
+        }
+      }
+    };
+
+    pageMixinMap.auto = {
+      data: function() {
+        return {
+          pageLoading: false,
+          form: {
+            datafieldvueRadioButton_oIRGR: ""
+          },
+          vueRadioButton_oIRGROpts: [{
+            value: "seven",
+            label: "未来7天"
+          }, {
+            value: "fourteen",
+            label: "未来14天"
+          }, {
+            value: "all",
+            label: "所有"
+          }],
+          addBaseScheduleInfo: this.getDataSource({
+            type: "POST"
+          }),
+          deleteBaseScheduleInfo: this.getDataSource({
+            type: "POST"
+          })
+        };
+      },
+      methods: {
+        // 拆分按钮列配置
+        vueXgrid_SrzcVVueXgridButtonColumn_SxyHGButtons: function(scope) {
+          return [{
+            value: "拆分",
+            size: 'small',
+            type: 'text',
+            click: this.splitClick,
+            hidden: scope.row.status === "已下达"
+          }];
+        },
+        // 删除按钮列配置
+        vueXgrid_SrzcVVueXgridButtonColumn_Su1yiButtons: function(scope) {
+          return [{
+            value: "删除",
+            size: 'small',
+            type: 'text',
+            click: this.deleteClick,
+            hidden: scope.row.status === "已下达"
+          }];
+        }
+      }
+    };
+
+    // 生成混入对象
+    pageMixins = getPageMixins(pageMixinMap);
+  })();
+
+  // 导出模块
+  module.exports = {
+    mixins: pageMixins,
+    name: "productGroupPlans"
+  };
+</script>

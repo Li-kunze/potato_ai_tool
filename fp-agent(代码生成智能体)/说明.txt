@@ -1,0 +1,1 @@
+把opencode.json放在C:\Users\mid2422\.config\opencode下(已存在就追加配置)

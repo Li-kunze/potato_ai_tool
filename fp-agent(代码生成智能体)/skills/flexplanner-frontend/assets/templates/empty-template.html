@@ -1,0 +1,461 @@
+<style type="text/css" scoped>
+  <!-- 自定义样式区域 -->
+  <!-- 示例:表格行背景色 -->
+  .table-row-color {
+    background-color: #FFFF33;
+    color: black;
+  }
+
+  <!-- 示例:单元格样式 -->
+  .cell-pending {
+    background-color: #fef0f0;
+    color: #f56c6c;
+  }
+
+  <!-- 示例:按钮样式 -->
+  .xgrid-delete-btn {
+    color: red;
+    margin: 0 24px;
+  }
+</style>
+
+<template>
+  <div v-cloak class="page" v-loading="pageLoading" :vue-loading-text="messageutil.get('page.loading.text')">
+    <escort-form ref="form" id="form" :model="form">
+      <!-- ========== 查询条件区 ========== -->
+      <escort-row id="vueRow_condition" ref="vueRow_condition">
+        <escort-col :inline="true" :md="{span:6}" align="left">
+          <escort-input
+            v-model="form.field1"
+            prop="field1"
+            :label-value="messageutil.get('标签文本')"
+            label-width="100px"
+            placeholder="请输入..."
+            :style_="{ width: '200px' }">
+          </escort-input>
+        </escort-col>
+        <escort-col :inline="true" :md="{span:6}" align="left">
+          <escort-select
+            v-model="form.field2"
+            :datasource="vueDataSet_codeList"
+            value-member="key1"
+            display-member="codeData1"
+            :label-value="messageutil.get('下拉选择')"
+            label-width="100px"
+            :filterable="true">
+          </escort-select>
+        </escort-col>
+        <escort-col :inline="true" :md="{span:6}" align="left">
+          <escort-datetime-picker
+            v-model="form.field3"
+            prop="field3"
+            value-format="yyyy-MM-dd"
+            type="date"
+            :label-value="messageutil.get('日期选择')"
+            label-width="100px"
+            format="ymd">
+          </escort-datetime-picker>
+        </escort-col>
+        <escort-col :inline="true" :md="{span:6}" align="right">
+          <escort-button type="primary" size="small" @click="searchBtnClick">
+            {{messageutil.get('查询')}}
+          </escort-button>
+          <escort-button type="success" size="small" @click="saveBtnClick">
+            {{messageutil.get('保存')}}
+          </escort-button>
+          <escort-button type="warning" size="small" @click="resetBtnClick">
+            {{messageutil.get('重置')}}
+          </escort-button>
+        </escort-col>
+      </escort-row>
+
+      <!-- ========== 数据展示区 (XGrid) ========== -->
+      <escort-row id="vueRow_grid" ref="vueRow_grid">
+        <escort-col :md="{span:24}">
+          <escort-xgrid
+            id="vueXgrid_main"
+            ref="vueXgrid_main"
+            :data="gridData"
+            height="400"
+            border
+            stripe
+            highlight-current-row"
+            :cell-class-name="vueXgridCellClassName">
+
+            <!-- 复选框列 -->
+            <escort-xgrid-column type="checkbox" width="50px" align="center"></escort-xgrid-column>
+
+            <!-- 序号列 -->
+            <escort-xgrid-column type="index" width="50px" align="center"></escort-xgrid-column>
+
+            <!-- 输入框列 (可编辑) -->
+            <escort-xgrid-column
+              prop="field1"
+              text="列标题"
+              width="120px"
+              show-overflow="ellipsis"
+              render-name="input">
+            </escort-xgrid-column>
+
+            <!-- 只读文本列 -->
+            <escort-xgrid-column
+              prop="field2"
+              text="列标题"
+              width="150px"
+              show-overflow="tooltip">
+            </escort-xgrid-column>
+
+            <!-- 日期列 (可编辑) -->
+            <escort-xgrid-column
+              prop="field3"
+              text="日期列"
+              width="120px"
+              render-name="date"
+              edit-render-value-format="yyyy-MM-dd"
+              format="ymd">
+            </escort-xgrid-column>
+
+            <!-- 数值列 (可编辑,右对齐) -->
+            <escort-xgrid-column
+              prop="field4"
+              text="数值列"
+              width="100px"
+              align="right"
+              render-name="numeric">
+            </escort-xgrid-column>
+
+            <!-- 模板列 (自定义渲染) -->
+            <escort-xgrid-column
+              prop="field5"
+              text="状态"
+              width="100px"
+              :template="true"
+              render-name="template">
+              <template slot="default" slot-scope="scope">
+                <span :class="getStatusCss(scope.row)">{{scope.row.field5}}</span>
+              </template>
+            </escort-xgrid-column>
+
+            <!-- 按钮列 (固定右侧) -->
+            <escort-xgrid-column
+              fixed="right"
+              align="center"
+              text="操作"
+              width="150px"
+              render-name="button"
+              :buttons="vueXgridButtons">
+            </escort-xgrid-column>
+          </escort-xgrid>
+        </escort-col>
+      </escort-row>
+
+      <!-- ========== 弹窗区域 ========== -->
+      <!-- 居中弹窗 -->
+      <escort-window
+        v-model="showEditWindow"
+        size="small"
+        top="15%"
+        title="编辑信息"
+        :close-on-click-modal="false"
+        id="vueWindow_edit"
+        ref="vueWindow_edit">
+        <escort-row>
+          <escort-col>
+            <escort-textarea v-model="form.remark" :rows="4" placeholder="请输入备注"></escort-textarea>
+          </escort-col>
+        </escort-row>
+        <escort-row>
+          <escort-col align="center">
+            <escort-button type="primary" @click="confirmEditClick">确定</escort-button>
+            <escort-button @click="showEditWindow = false">取消</escort-button>
+          </escort-col>
+        </escort-row>
+      </escort-window>
+
+      <!-- 侧边栏弹窗 -->
+      <escort-aside
+        ref="asideDetail"
+        position="right"
+        size="small"
+        :close-on-press-escape="true"
+        :close-on-click-modal="true"
+        id="vueAside_detail"
+        src="/views/MODULE/SUBPAGE.html">
+      </escort-aside>
+
+    </escort-form>
+  </div>
+</template>
+
+<script type="text/javascript">
+  var pageMixins;
+  (function() {
+    var pageMixinMap = {};
+
+    // ========== 事件处理方法 ==========
+    pageMixinMap.event = {
+      methods: {
+        // 查询按钮点击
+        searchBtnClick: function(event) {
+          var self = this;
+          self.vueDataSet_search.setParameter({
+            field1: self.form.field1,
+            field2: self.form.field2,
+            field3: self.form.field3
+          });
+          self.vueDataSet_search.retrieve();
+        },
+
+        // 保存按钮点击
+        saveBtnClick: function(event) {
+          var self = this;
+          self.$refs.form.validate(function(valid) {
+            if (valid) {
+              var pendingData = self.$refs.vueXgrid_main.getPendingRows();
+              self.vueDataSet_save.setParameter({
+                items: pendingData
+              });
+              self.vueDataSet_save.retrieve(function(resp) {
+                if (resp.code === 200) {
+                  componentutils.showSuccessMessage({
+                    message: resp.message || "保存成功"
+                  });
+                  self.searchBtnClick();
+                }
+              });
+            } else {
+              componentutils.showErrorMessage({
+                message: "请填写完整信息"
+              });
+            }
+          });
+        },
+
+        // 重置按钮点击
+        resetBtnClick: function(event) {
+          this.$refs.form.resetFields();
+        },
+
+        // XGrid 按钮列配置
+        vueXgridButtons: function(scope) {
+          var self = this;
+          return [{
+            value: "编辑",
+            size: 'small',
+            type: 'text',
+            click: self.editClick
+          }, {
+            value: "删除",
+            size: 'small',
+            type: 'text',
+            click: self.deleteClick
+          }];
+        },
+
+        // 编辑按钮点击
+        editClick: function(row) {
+          var self = this;
+          self.form.editRow = row;
+          self.showEditWindow = true;
+        },
+
+        // 删除按钮点击
+        deleteClick: function(row) {
+          var self = this;
+          self.$confirm({
+            title: "提示",
+            message: "确定要删除这条数据吗?",
+            type: "warning"
+          }).then(function(action) {
+            self.vueDataSet_delete.setParameter({
+              id: row.id
+            });
+            self.vueDataSet_delete.retrieve(function(resp) {
+              if (resp.code === 200) {
+                componentutils.showSuccessMessage({
+                  message: "删除成功"
+                });
+                self.searchBtnClick();
+              }
+            });
+          });
+        },
+
+        // 确认编辑弹窗
+        confirmEditClick: function(event) {
+          var self = this;
+          self.showEditWindow = false;
+          componentutils.showSuccessMessage({
+            message: "保存成功"
+          });
+        }
+      }
+    };
+
+    // ========== 手动混入 (父组件传参、依赖注入) ==========
+    pageMixinMap.manualCommon = [{
+      props: {
+        // 父组件传参示例
+        itemId: String
+      },
+      inject: ['parent']
+    }];
+
+    // ========== 业务逻辑方法、计算属性 ==========
+    pageMixinMap.manualSeperate = {
+      methods: {
+        // 获取状态样式
+        getStatusCss: function(row) {
+          var status = row.field5;
+          if (status === '已完成') {
+            return ['cell-pending'];
+          }
+          return [];
+        },
+
+        // XGrid 单元格样式回调
+        vueXgridCellClassName: function(obj) {
+          var row = obj.row;
+          var column = obj.column;
+          var field = column.field;
+
+          if (field === 'field5' && row.field5 === '待处理') {
+            return 'cell-pending';
+          }
+          return '';
+        },
+
+        // 打开侧边栏
+        openAsideDetail: function(row) {
+          this.$refs.asideDetail.open({
+            id: row.id,
+            parent: this
+          });
+        }
+      },
+      computed: {
+        // XGrid 数据计算属性
+        gridData: function() {
+          var self = this;
+          var data = self.vueDataSet_search.data || [];
+
+          return data.map(function(item) {
+            return {
+              id: item.id,
+              field1: item.field1,
+              field2: item.field2,
+              field3: VueUtil.formatDate(item.field3, 'yyyy-MM-dd'),
+              field4: item.field4,
+              field5: item.field5
+            };
+          });
+        }
+      }
+    };
+
+    // ========== 数据初始化 ==========
+    pageMixinMap.auto = {
+      data: function() {
+        return {
+          pageLoading: false,
+          form: {
+            field1: '',
+            field2: '',
+            field3: '',
+            remark: ''
+          },
+          showEditWindow: false,
+
+          // 数据源定义
+          vueDataSet_search: this.getDataSource({
+            url: "/api/endpoint.json",
+            type: "POST",
+            success: this.vueDataSetSearchSuccess
+          }),
+
+          vueDataSet_save: this.getDataSource({
+            url: "/api/endpoint.json",
+            type: "POST",
+            success: this.vueDataSetSaveSuccess
+          }),
+
+          vueDataSet_delete: this.getDataSource({
+            url: "/api/endpoint.json",
+            type: "POST",
+            success: this.vueDataSetDeleteSuccess
+          }),
+
+          // 下拉选项数据源
+          vueDataSet_codeList: this.getDataSource({
+            url: "/common/getCodeList.json?codeId=CODE_ID",
+            type: "POST",
+            success: this.vueDataSetCodeListSuccess
+          })
+        };
+      },
+
+      methods: {
+        // 查询成功回调
+        vueDataSetSearchSuccess: function(res, ds) {
+          if (res && res.code === 200) {
+            this.vueDataSet_search.data = res.data || [];
+          } else {
+            componentutils.showErrorMessage({
+              message: "查询失败: " + (res.message || "未知错误")
+            });
+          }
+        },
+
+        // 保存成功回调
+        vueDataSetSaveSuccess: function(res, ds) {
+          if (res && res.code === 200) {
+            // 保存成功处理
+          }
+        },
+
+        // 删除成功回调
+        vueDataSetDeleteSuccess: function(res, ds) {
+          if (res && res.code === 200) {
+            componentutils.showSuccessMessage({
+              message: "删除成功"
+            });
+          }
+        },
+
+        // 下拉选项成功回调
+        vueDataSetCodeListSuccess: function(res, ds) {
+          if (res && res.data) {
+            this.vueDataSet_codeList.data = res.data;
+          }
+        }
+      },
+
+      beforeMount: function() {
+        this.dataInit();
+      },
+
+      mounted: function() {
+        // 加载下拉选项
+        this.vueDataSet_codeList.retrieve();
+
+        // 默认查询
+        this.searchBtnClick();
+      },
+
+      methods: {
+        dataInit: function() {
+          // 数据初始化逻辑
+        }
+      }
+    };
+
+    // 生成混入对象
+    pageMixins = getPageMixins(pageMixinMap);
+  })();
+
+  // 导出模块
+  module.exports = {
+    mixins: pageMixins,
+    name: "MODULE_XX_YY"  // 修改为实际的页面编号
+  };
+</script>
