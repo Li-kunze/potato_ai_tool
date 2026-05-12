@@ -125,27 +125,28 @@ public Page<XxxModel> getXxxPage(SearchConditionForm form) {
 
 ### SQL 字段别名映射
 
-SQL 查询时必须使用别名，将数据库字段名（下划线）映射到 Model 字段名（驼峰）：
+SQL 查询时必须使用别名，将数据库字段名（下划线）映射到 Model 字段名（驼峰）
+且sql使用数据表别名应使用驼峰命名法(ddmrp_buffer_result as dbr)：
 
 ```java
 sql.append("SELECT ");
-sql.append("  b.buffer_id as bufferId, ");      // buffer_id → bufferId
-sql.append("  b.item_key as itemKey, ");        // item_key → itemKey
-sql.append("  b.site_id as siteId, ");          // site_id → siteId
-sql.append("  b.buffer_model as bufferModel "); // buffer_model → bufferModel
-sql.append("FROM ddmrp_buffer_result b ");
+sql.append("  dbr.buffer_id as bufferId, ");      // buffer_id → bufferId
+sql.append("  dbr.item_key as itemKey, ");        // item_key → itemKey
+sql.append("  dbr.site_id as siteId, ");          // site_id → siteId
+sql.append("  dbr.buffer_model as bufferModel "); // buffer_model → bufferModel
+sql.append("FROM ddmrp_buffer_result dbr ");
 ```
 
 ### 动态条件处理
 
 ```java
 if (StringUtils.isNotBlankText(form.getItemKey())) {
-    sql.append("  AND b.item_key = :itemKey ");
+    sql.append("  AND dbr.item_key = :itemKey ");
     map.put("itemKey", form.getItemKey());
 }
 
 if (CollectionUtils.isNotEmpty(form.getBufferModelList())) {
-    sql.append("  AND b.buffer_model IN :bufferModelList ");
+    sql.append("  AND dbr.buffer_model IN :bufferModelList ");
     map.put("bufferModelList", form.getBufferModelList());
 }
 ```
@@ -215,9 +216,9 @@ public interface XxxRepositoryCustom {
 |-----|---------|
 | 单表查询 | `SELECT * FROM table WHERE site_id = :siteId` |
 | 多表连接 | `FROM a JOIN b ON a.id = b.a_id` |
+| 列表查询 | `queryForList(...)` |
 | 分页查询 | `queryForPagingList(..., currentPage, currentPageSize)` |
 | 单条查询 | `queryForSingle(...)` |
-| 列表查询 | `queryForList(...)` |
 
 ## 详细指引
 

@@ -35,38 +35,47 @@ public class XxxRepositoryImpl extends JpaNativeQuerySupportRepository implement
     @Override
     public Page<XxxModel> getXxxList(String siteId, String factoryId, SearchConditionForm model) {
         StringBuilder sql = new StringBuilder();
+        StringBuilder sqlFormWhere = new StringBuilder();
+        StringBuilder sqlCount = new StringBuilder();
         Map<String, Object> map = new HashMap<>();
 
+        Pageable pageable = PageRequest.of(model.getCurrentPage() - 1, model.getCurrentPageSize());
+
         sql.append("SELECT ");
-        sql.append("  b.buffer_id as bufferId, ");
-        sql.append("  b.site_id as siteId, ");
-        sql.append("  b.factory_id as factoryId, ");
-        sql.append("  b.item_key as itemKey, ");
-        sql.append("  b.buffer_model as bufferModel ");
-        sql.append("FROM ddmrp_buffer_result b ");
-        sql.append("WHERE b.site_id = :siteId ");
-        sql.append("  AND b.factory_id = :factoryId ");
+        sql.append("  dbr.buffer_id as bufferId, ");
+        sql.append("  dbr.site_id as siteId, ");
+        sql.append("  dbr.factory_id as factoryId, ");
+        sql.append("  dbr.item_key as itemKey, ");
+        sql.append("  dbr.buffer_model as bufferModel ");
+        sqlFormWhere.append("FROM ddmrp_buffer_result dbr ");
+        sqlFormWhere.append("WHERE dbr.site_id = :siteId ");
+        sqlFormWhere.append("  AND dbr.factory_id = :factoryId ");
 
         if (StringUtils.isNotBlankText(model.getItemKey())) {
-            sql.append("  AND b.item_key = :itemKey ");
+            sqlFormWhere.append("  AND dbr.item_key = :itemKey ");
             map.put("itemKey", model.getItemKey());
         }
 
         if (CollectionUtils.isNotEmpty(model.getBufferModelList())) {
-            sql.append("  AND b.buffer_model IN :bufferModelList ");
+            sqlFormWhere.append("  AND dbr.buffer_model IN :bufferModelList ");
             map.put("bufferModelList", model.getBufferModelList());
         }
 
         map.put("siteId", siteId);
         map.put("factoryId", factoryId);
 
-        return queryForPagingList(
-            sql.toString(),
-            map,
-            XxxModel.class,
-            model.getCurrentPage(),
-            model.getCurrentPageSize()
-        );
+        BigInteger queryDataCount = queryForSingle(sqlCount.toString(), map, PageEntityModel.class).getCount();
+        
+		if (queryDataCount.intValue() != 0) {
+	        sqlFormWhere.append("ORDER BY dbr.operate_date DESC");
+
+	        sql.append(sqlFormWhere);
+
+	        List<XxxModel> detailModelList = queryForPagingList(sql.toString(), map, XxxModel.class, pageable);
+			return new PageImpl<>(detailModelList, pageable, queryDataCount.intValue());
+		} else {
+			return new PageImpl<>(Collections.emptyList(), pageable, PjConstants.INT_ZERO);
+		}
     }
 
     /**
@@ -131,16 +140,16 @@ sql.append("WHERE ... ");
 ### 2. 字段别名映射
 
 ```java
-sql.append("  b.buffer_id as bufferId, ");
-sql.append("  b.item_key as itemKey, ");
-sql.append("  b.buffer_model as bufferModel ");
+sql.append("  dbr.buffer_id as bufferId, ");
+sql.append("  dbr.item_key as itemKey, ");
+sql.append("  dbr.buffer_model as bufferModel ");
 ```
 
 ### 3. 动态条件
 
 ```java
 if (StringUtils.isNotBlankText(form.getItemKey())) {
-    sql.append("  AND b.item_key = :itemKey ");
+    sql.append("  AND dbr.item_key = :itemKey ");
     map.put("itemKey", form.getItemKey());
 }
 ```

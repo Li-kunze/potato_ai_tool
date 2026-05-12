@@ -12,10 +12,10 @@ sql.append("  AND factory_id = :factoryId ");
 ## 多表连接（JOIN）
 
 ```java
-sql.append("SELECT i.item_key, i.item_name, b.buffer_model ");
+sql.append("SELECT i.item_key, i.item_name, dbr.buffer_model ");
 sql.append("FROM items i ");
-sql.append("LEFT JOIN ddmrp_buffer_result b ");
-sql.append("  ON i.item_key = b.item_key ");
+sql.append("LEFT JOIN ddmrp_buffer_result dbr ");
+sql.append("  ON i.item_key = dbr.item_key ");
 sql.append("WHERE i.site_id = :siteId ");
 ```
 
