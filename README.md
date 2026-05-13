@@ -1,5 +1,6 @@
 # Agent 与 Skill 完整清单
-
+opencode.json放置路径: C:\Users\mid2xxx\.config\opencode
+skills放置路径: C:\Users\mid2xxx\.config\opencode\skills
 > 本文档列出了系统中所有可用的 **Agent** 及其使用的 **Skill**。
 > 
 > **最后更新**: 2026-05-12
